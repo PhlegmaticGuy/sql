@@ -16,22 +16,22 @@ class InsertQuery extends Query
     /**
      * @var Driver
      */
-    private $driver;
+    protected $driver;
 
     /**
      * @var Table
      */
-    private $table;
+    protected $table;
 
     /**
      * @var Column[]
      */
-    private $columns;
+    protected $columns;
 
     /**
      * @var string[] list of tuple expressions
      */
-    private $tuples = [];
+    protected $tuples = [];
 
     /**
      * @param Driver       $driver

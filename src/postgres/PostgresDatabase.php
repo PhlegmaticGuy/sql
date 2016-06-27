@@ -82,4 +82,14 @@ class PostgresDatabase extends Database implements Driver
     {
         return $this->container->create(PostgresDeleteQuery::class, ['table' => $table]);
     }
+
+    /**
+     * @param Table $table
+     *
+     * @return PostgresUpsertQuery
+     */
+    public function upsert(Table $table)
+    {
+        return $this->container->create(PostgresUpsertQuery::class, ['table' => $table]);
+    }
 }

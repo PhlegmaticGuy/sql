@@ -94,7 +94,7 @@ function check_return_types(MapperProvider $query, $expected_types)
 function check_params(Query $query, $expected_params)
 {
     $params = $query->getParams();
-    
+
     $expected_num_params = count($expected_params);
     $num_params = count($params);
 
@@ -446,15 +446,17 @@ test(
         ];
 
         $pdo_types = [
-            'int' => PDO::PARAM_INT,
-            'float' => PDO::PARAM_STR,
+            'int'    => PDO::PARAM_INT,
+            'float'  => PDO::PARAM_STR,
             'string' => PDO::PARAM_STR,
-            'true' => PDO::PARAM_BOOL,
-            'false' => PDO::PARAM_BOOL,
-            'null' => PDO::PARAM_NULL,
+            'true'   => PDO::PARAM_BOOL,
+            'false'  => PDO::PARAM_BOOL,
+            'null'   => PDO::PARAM_NULL,
         ];
 
-        $sql = "SELECT * FROM foo WHERE " . implode(" AND ", array_map(function ($name) { return "{$name} = :{$name}"; }, array_keys($params)));
+        $sql = "SELECT * FROM foo WHERE " . implode(" AND ", array_map(function ($name) {
+                return "{$name} = :{$name}";
+            }, array_keys($params)));
 
         $container = new DatabaseContainer();
 
@@ -507,9 +509,13 @@ test(
         // the following conditions will assert that e.g. ":int" for an array with 2 elements expands to a set like "(:int_1, :int_2)"
         // and that ":empty" for an array with zero elements expands to the empty set, e.g. "(null)" (and doesn't bind any value)
 
-        $sql = "SELECT * FROM foo WHERE empty = :empty AND " . implode(" AND ", array_map(function ($name) { return "{$name} IN :{$name}"; }, array_keys($params)));
+        $sql = "SELECT * FROM foo WHERE empty = :empty AND " . implode(" AND ", array_map(function ($name) {
+                return "{$name} IN :{$name}";
+            }, array_keys($params)));
 
-        $expanded_sql = "SELECT * FROM foo WHERE empty = (null) AND " . implode(" AND ", array_map(function ($name) { return "{$name} IN (:{$name}_1, :{$name}_2)"; }, array_keys($params)));
+        $expanded_sql = "SELECT * FROM foo WHERE empty = (null) AND " . implode(" AND ", array_map(function ($name) {
+                return "{$name} IN (:{$name}_1, :{$name}_2)";
+            }, array_keys($params)));
 
         $container = new DatabaseContainer();
 
@@ -523,7 +529,8 @@ test(
             $index = 1;
 
             foreach ($values as $value) {
-                $handle->shouldReceive('bindValue')->once()->with("{$name}_{$index}", $value, $pdo_types[$name])->andReturn($handle);
+                $handle->shouldReceive('bindValue')->once()->with("{$name}_{$index}", $value,
+                    $pdo_types[$name])->andReturn($handle);
 
                 $index += 1;
             }
@@ -559,7 +566,8 @@ test(
         $mock_pdo = Mockery::mock(PDO::class);
 
         $connection = new MySQLConnection($mock_pdo, $container);
-        $mock_logger = new MockLogger(function () {});
+        $mock_logger = new MockLogger(function () {
+        });
 
         $st = new PreparedPDOStatement($mock_handle, $connection, $container, $mock_logger);
 
@@ -592,7 +600,7 @@ test(
     'can format a query for logging',
     function () {
         $sql = "INSERT INTO \"foo\" VALUES(:foo)";
-        $params = [ 'foo' => 'bar' ];
+        $params = ['foo' => 'bar'];
 
         $pretty_sql = QueryFormatter::formatQuery($sql, $params);
 
@@ -664,7 +672,7 @@ test(
 
         $connection->execute(new MockParameterQuery($container));
 
-        eq($params, [ 'foo' => 'bar' ], 'params are logged');
+        eq($params, ['foo' => 'bar'], 'params are logged');
         ok($time_msec > 0 && $time_msec < 1000, 'duration is logged and reasonable');
         // I cannot test that the correct SQL is logged because PDO sucks
     }
@@ -687,7 +695,8 @@ test(
         $container = new DatabaseContainer();
 
         $connection = new MySQLConnection($mock_pdo, $container);
-        $mock_logger = new MockLogger(function () {});
+        $mock_logger = new MockLogger(function () {
+        });
 
         $st = new PreparedPDOStatement($mock_handle, $connection, $container, $mock_logger);
 
@@ -704,7 +713,7 @@ test(
         $mock_pdo = Mockery::mock(PDO::class);
 
         $db = create_db();
-        
+
         /** @var MockInterface|PDOStatement $mock_statement */
         $mock_statement = Mockery::mock(PDOStatement::class);
 
@@ -745,7 +754,7 @@ test(
         $connection = new MySQLConnection($mock_pdo, new DatabaseContainer());
 
         $result = $connection->fetch($query)->all();
-        
+
         eq(
             $result,
             [
@@ -760,14 +769,16 @@ test(
 test(
     'can fetch records and apply Mappers in batches',
     function () {
-        foreach ([30,20] as $num_records) {
+        foreach ([30, 20] as $num_records) {
             /** @var MockInterface|PreparedStatement $mock_statement */
             $mock_statement = Mockery::mock(PreparedPDOStatement::class);
 
             $mock_statement
                 ->shouldReceive('fetch')
                 ->times($num_records)
-                ->andReturnValues(array_map(function ($id) use ($num_records) { return ['id' => $id]; }, range(1, $num_records)));
+                ->andReturnValues(array_map(function ($id) use ($num_records) {
+                    return ['id' => $id];
+                }, range(1, $num_records)));
 
             $mock_statement
                 ->shouldReceive('fetch')
@@ -776,15 +787,17 @@ test(
 
             $batch_num = 0;
 
-            $mappers = [new BatchMapper(function (array $records) use (&$batch_num) {
-                $batch_num += 1;
+            $mappers = [
+                new BatchMapper(function (array $records) use (&$batch_num) {
+                    $batch_num += 1;
 
-                foreach ($records as &$record) {
-                    $record['batch_num'] = $batch_num;
-                }
+                    foreach ($records as &$record) {
+                        $record['batch_num'] = $batch_num;
+                    }
 
-                return $records;
-            })];
+                    return $records;
+                }),
+            ];
 
             $result = new Result($mock_statement, 20, $mappers);
 
@@ -806,11 +819,13 @@ test(
 
         $calls = [];
 
-        $mappers = [new RecordMapper(function (array $record) use (&$calls) {
-            $calls[] = $record;
+        $mappers = [
+            new RecordMapper(function (array $record) use (&$calls) {
+                $calls[] = $record;
 
-            return $record;
-        })];
+                return $record;
+            }),
+        ];
 
         $result = new Result($mock_statement, 20, $mappers);
 
@@ -832,11 +847,13 @@ test(
 
         $calls = [];
 
-        $mappers = [new RecordMapper(function (array $record) use (&$calls) {
-            $calls[] = $record;
+        $mappers = [
+            new RecordMapper(function (array $record) use (&$calls) {
+                $calls[] = $record;
 
-            return $record;
-        })];
+                return $record;
+            }),
+        ];
 
         $result = new Result($mock_statement, 20, $mappers);
 
@@ -878,10 +895,10 @@ test(
     'can map bool values to SQL',
     function () {
         $type = BoolType::get(true, false);
-        
+
         eq($type->convertToPHP(true), true);
         eq($type->convertToPHP(false), false);
-        
+
         eq($type->convertToSQL(true), true);
         eq($type->convertToSQL(false), false);
 
@@ -894,7 +911,7 @@ test(
         eq($type->convertToSQL(false), 0);
 
         $type = BoolType::get("yes", "no");
-        
+
         eq($type->convertToPHP('yes'), true);
         eq($type->convertToPHP('no'), false);
 
@@ -943,7 +960,7 @@ test(
         $columns = $schema->order->listColumns("foo");
 
         eq(count($columns), 2);
-        
+
         foreach ($columns as $column) {
             eq($column->getAlias(), "foo_" . $column->getName());
         }
@@ -984,13 +1001,17 @@ test(
         eq(expr::any(['a', 'b']), '(a OR b)');
         eq(expr::any(['a', 'b', 'c']), '(a OR b OR c)');
 
-        expect(RuntimeException::class, 'shoud throw for empty array', function () { expr::any([]); });
+        expect(RuntimeException::class, 'shoud throw for empty array', function () {
+            expr::any([]);
+        });
 
         eq(expr::all(['a']), 'a');
         eq(expr::all(['a', 'b']), '(a AND b)');
         eq(expr::all(['a', 'b', 'c']), '(a AND b AND c)');
 
-        expect(RuntimeException::class, 'shoud throw for empty array', function () { expr::all([]); });
+        expect(RuntimeException::class, 'shoud throw for empty array', function () {
+            expr::all([]);
+        });
     }
 );
 
@@ -1069,7 +1090,7 @@ test(
                 ->columns([$user->first_name, $user->last_name])
                 ->where([
                     "{$user->first_name} LIKE :first",
-                    "{$user->last_name} LIKE :last"
+                    "{$user->last_name} LIKE :last",
                 ])
                 ->order("{$user->first_name} ASC")
                 ->order("{$user->last_name} ASC")
@@ -1087,9 +1108,9 @@ test(
 
         /** @var SampleSchema $schema */
         $schema = $db->getSchema(SampleSchema::class);
-        
+
         $user = $schema->user;
-        
+
         $count_query = $db
             ->select($user)
             ->columns($user->first_name)// discarded
@@ -1142,7 +1163,7 @@ test(
         $mock_statement->shouldReceive('fetch')->once()->andReturn(['count' => 123]);
 
         $connection = new MySQLConnection($mock_pdo, new DatabaseContainer());
-        
+
         eq($connection->count($db->select($schema->user)), 123);
     }
 );
@@ -1190,18 +1211,18 @@ test(
         $schema = $db->getSchema(SampleSchema::class);
 
         $user = $schema->user;
-        
+
         $home_address = $schema->address('home_address');
         $work_address = $schema->address('work_address');
 
         $order = $schema->order;
-        
+
         $num_orders = $db
             ->select($order)
             ->value("COUNT(`order_id`)")
             ->where([
                 "{$order->user_id} = {$user->id}",
-                "{$order->completed} >= :order_date"
+                "{$order->completed} >= :order_date",
             ]);
 
         $query = $db
@@ -1216,8 +1237,8 @@ test(
                 "{$user->dob} = :dob",
                 expr::any([
                     "{$home_address->street_name} LIKE :street_name",
-                    "{$work_address->street_name} LIKE :street_name"
-                ])
+                    "{$work_address->street_name} LIKE :street_name",
+                ]),
             ])
             ->value($num_orders, "num_orders", IntType::class)
             ->where("{$num_orders} > 3")
@@ -1225,7 +1246,7 @@ test(
             ->bind("first_name", "rasmus")
             ->bind("street_name", "dronningensgade")
             ->bind("dob", strtotime('1975-07-07'), TimestampType::class)
-            ->bind("groups", [1,2,3]);
+            ->bind("groups", [1, 2, 3]);
 
         $expected_sql = <<<'SQL'
 SELECT
@@ -1244,7 +1265,7 @@ WHERE
     AND (`home_address`.`street_name` LIKE :street_name OR `work_address`.`street_name` LIKE :street_name)
     AND (SELECT COUNT(`order_id`) FROM `order` WHERE `order`.`user_id` = `user`.`id` AND `order`.`completed` >= :order_date) > 3
 SQL;
-        
+
         sql_eq($query, $expected_sql);
     }
 );
@@ -1510,10 +1531,57 @@ SQL;
 );
 
 test(
+    'can create INSERT ON CONFLICT UPDATE query for PostgreSQL',
+    function () {
+        $db = new PostgresDatabase(new DatabaseContainer());
+
+        /** @var SampleSchema $schema */
+        $schema = $db->getSchema(SampleSchema::class);
+
+        $valid_datetime = '2015-11-04 14:40:52';
+        $valid_timestamp = 1446648052;
+
+        $user = $schema->user;
+
+        $values = [
+            $user->first_name->getName()      => 'John',
+            $user->last_name->getName()       => 'Wayne',
+            $user->dob->getName()             => $valid_timestamp,
+            $user->deleted->getName()         => false,
+            $user->home_address_id->getName() => 1,
+        ];
+//
+//        $update = $db->update($user)->assign($values);
+//
+
+        $insert = $db
+            ->upsert($user)
+            ->add($values)
+            ->onConflictExpr("({$user->id->getName()})")
+            ->onConflictExpr("On Constraint what")
+            ->update([
+                $user->first_name,
+                $user->last_name,
+                $user->dob,
+                $user->deleted,
+                $user->home_address_id
+            ]);
+
+
+        sql_eq(
+            $insert,
+            'INSERT INTO "user" ("first_name", "last_name", "dob", "home_address_id", "deleted") VALUES (:c0_1, :c0_2, :c0_3, :c0_4, :c0_5)
+              ON CONFLICT (id)
+              DO UPDATE SET "first_name" = EXCLUDED."first_name","last_name" = EXCLUDED."last_name","dob" = EXCLUDED."dob","deleted" = EXCLUDED."deleted","home_address_id" = EXCLUDED."home_address_id"'
+        );
+    }
+);
+
+test(
     'can build INSERT RETURNING query',
     function () {
         $db = new PostgresDatabase(new DatabaseContainer());
-        
+
         /** @var SampleSchema $schema */
         $schema = $db->getSchema(SampleSchema::class);
 
@@ -1533,9 +1601,9 @@ SQL;
         sql_eq($query, $expected_sql);
 
         check_params($query, ['c0_1' => 'Fake Street']);
-        
+
         check_return_types($query, [
-            'id' => IntType::class
+            'id' => IntType::class,
         ]);
     }
 );
@@ -1562,7 +1630,8 @@ test(
             );
 
             eq($provider->getProtocol(), $expected_type);
-            eq($provider->getDSN(), "{$expected_type}:host={$expected_host};port={$expected_port};dbname={$expected_dbname}");
+            eq($provider->getDSN(),
+                "{$expected_type}:host={$expected_host};port={$expected_port};dbname={$expected_dbname}");
             eq($provider->getHost(), $expected_host);
             eq($provider->getPort(), $expected_port);
             eq($provider->getUsername(), $expected_username);
@@ -1584,7 +1653,8 @@ test(
             $expected_port
         );
 
-        eq($provider->getDSN(), "{$expected_type}:host=localhost;port={$expected_port};dbname={$expected_dbname}", "can apply default hostname to DSN");
+        eq($provider->getDSN(), "{$expected_type}:host=localhost;port={$expected_port};dbname={$expected_dbname}",
+            "can apply default hostname to DSN");
         eq($provider->getHost(), "localhost", "reflects default hostname");
 
         expect(
